@@ -117,6 +117,12 @@ pos_t operator *(const pos_t &a, const double &b) {
 	return { a[0] * b, a[1] * b };
 }
 
+struct Circle
+{
+	int x, y;
+	int r;
+};
+
 class player {
 public:
 	pos_t position;
@@ -125,7 +131,7 @@ public:
 	int size;
 	float cd;
 	SDL_Rect dstrect;
-	SDL_Point center;
+	Circle mCollider;
 
 	void Update(std::shared_ptr<SDL_Renderer> &r, std::shared_ptr<SDL_Texture> &t) {
 		if (size == 0) return;
@@ -144,9 +150,11 @@ public:
 		if (position[1] > SCREEN_HEIGHT + size / 2)
 			position[1] = -size / 2;
 
-		dstrect = { (int)position[0] - 12, (int)position[1] - 12, size, size };
-		center = { size / 2, size / 2 };
-		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, &center, SDL_FLIP_NONE);
+		mCollider.x = position[0];
+		mCollider.y = position[1];
+
+		dstrect = { (int)position[0] - size / 2, (int)position[1] - size / 2, size, size };
+		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, NULL, SDL_FLIP_NONE);
 	}
 };
 
@@ -158,8 +166,8 @@ public:
 	int size;
 	float lifetime;
 	SDL_Rect dstrect;
-	SDL_Point center;
 	bool shooted = false;
+	Circle mCollider;
 
 	void Update(std::shared_ptr<SDL_Renderer> &r, std::shared_ptr<SDL_Texture> &t) {
 		if (size == 0) return;
@@ -181,49 +189,11 @@ public:
 		if (position[1] > SCREEN_HEIGHT + size / 2)
 			position[1] = -size / 2;
 
-		dstrect = { (int)position[0], (int)position[1], size, size };
-		center = { size / 2, size / 2 };
-		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, &center, SDL_FLIP_NONE);
-	}
+		mCollider.x = position[0];
+		mCollider.y = position[1];
 
-	bool checkCollision(SDL_Rect a, SDL_Rect b)
-	{
-		int leftA, leftB;
-		int rightA, rightB;
-		int topA, topB;
-		int bottomA, bottomB;
-
-		leftA = a.x;
-		rightA = a.x + a.w;
-		topA = a.y;
-		bottomA = a.y + a.h;
-
-		leftB = b.x;
-		rightB = b.x + b.w;
-		topB = b.y;
-		bottomB = b.y + b.h;
-
-		if (bottomA <= topB)
-		{
-			return false;
-		}
-
-		if (topA >= bottomB)
-		{
-			return false;
-		}
-
-		if (rightA <= leftB)
-		{
-			return false;
-		}
-
-		if (leftA >= rightB)
-		{
-			return false;
-		}
-
-		return true;
+		dstrect = { (int)position[0] - size / 2, (int)position[1] - size / 2, size, size };
+		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, NULL, SDL_FLIP_NONE);
 	}
 };
 
@@ -234,8 +204,8 @@ public:
 	float angle = 0;
 	int size;
 	SDL_Rect dstrect;
-	SDL_Point center;
 	bool big = true;
+	Circle mCollider;
 
 	void Update(std::shared_ptr<SDL_Renderer> &r, std::shared_ptr<SDL_Texture> &t) {
 		if (size == 0) return;
@@ -253,49 +223,11 @@ public:
 		if (position[1] > SCREEN_HEIGHT + size / 2)
 			position[1] = -size / 2;
 
-		dstrect = { (int)position[0], (int)position[1], size, size };
-		center = { size / 2, size / 2 };
-		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, &center, SDL_FLIP_NONE);
-	}
+		mCollider.x = position[0];
+		mCollider.y = position[1];
 
-	bool checkCollision(SDL_Rect a, SDL_Rect b)
-	{
-		int leftA, leftB;
-		int rightA, rightB;
-		int topA, topB;
-		int bottomA, bottomB;
-
-		leftA = a.x;
-		rightA = a.x + a.w;
-		topA = a.y;
-		bottomA = a.y + a.h;
-
-		leftB = b.x;
-		rightB = b.x + b.w;
-		topB = b.y;
-		bottomB = b.y + b.h;
-
-		if (bottomA <= topB)
-		{
-			return false;
-		}
-
-		if (topA >= bottomB)
-		{
-			return false;
-		}
-
-		if (rightA <= leftB)
-		{
-			return false;
-		}
-
-		if (leftA >= rightB)
-		{
-			return false;
-		}
-
-		return true;
+		dstrect = { (int)position[0] - size / 2, (int)position[1] - size / 2, size, size };
+		SDL_RenderCopyEx(r.get(), t.get(), NULL, &dstrect, angle, NULL, SDL_FLIP_NONE);
 	}
 };
 
@@ -321,6 +253,26 @@ public:
 	}
 };
 
+double distanceSquared(int x1, int y1, int x2, int y2)
+{
+	int deltaX = x2 - x1;
+	int deltaY = y2 - y1;
+	return deltaX * deltaX + deltaY * deltaY;
+}
+
+bool checkCollision(Circle& a, Circle& b)
+{
+	int totalRadiusSquared = a.r + b.r;
+	totalRadiusSquared = totalRadiusSquared * totalRadiusSquared;
+
+	if (distanceSquared(a.x, a.y, b.x, b.y) < (totalRadiusSquared))
+	{
+		return true;
+	}
+
+	return false;
+}
+
 int main(int argc, char **argv) {
 	srand(time(NULL));
 	auto window = init_window(SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -335,6 +287,21 @@ int main(int argc, char **argv) {
 	auto music = load_music("bgmusic.wav");
 	auto shootSound = load_sound("shoot.wav");
 	auto explosionSound = load_sound("explosion.wav");
+
+	int highScore = 0;
+	SDL_RWops* file = SDL_RWFromFile("score.sav", "r+b");
+
+	if (file == NULL) {
+		file = SDL_RWFromFile("score.sav", "w+b");
+		if (file != NULL) {
+			SDL_RWwrite(file, &highScore, sizeof(int), 1);
+			SDL_RWclose(file);
+		}
+	}
+	else {
+		SDL_RWread(file, &highScore, sizeof(int), 1);
+		SDL_RWclose(file);
+	}
 
 	bool restart = false;
 	do {
@@ -351,9 +318,12 @@ int main(int argc, char **argv) {
 		player.size = 32;
 		player.position[0] = SCREEN_WIDTH / 2;
 		player.position[1] = SCREEN_HEIGHT / 2;
+		player.mCollider.r = player.size / 2;
+		player.mCollider.x = player.position[0];
+		player.mCollider.y = player.position[1];
 
 		char str[128];
-		double dt = 1 / 30.0;
+		double dt = 1 / 60.0;
 		float time = 0;
 		int score = 0;
 		float spawnTimer = 5;
@@ -373,6 +343,9 @@ int main(int argc, char **argv) {
 				asteroid.angle = rand() % 360;
 				asteroid.position = pos_t{ (double)(rand() % 832 - 24) , -24 };
 				asteroid.velocity[1] = 3;
+				asteroid.mCollider.r = asteroid.size / 2;
+				asteroid.mCollider.x = asteroid.position[0];
+				asteroid.mCollider.y = asteroid.position[1];
 				asteroids.push_back(asteroid);
 			}
 
@@ -403,6 +376,9 @@ int main(int argc, char **argv) {
 					bullet.angle = player.angle;
 					bullet.position = player.position;
 					bullet.velocity[1] = 5;
+					bullet.mCollider.r = bullet.size / 2;
+					bullet.mCollider.x = bullet.position[0];
+					bullet.mCollider.y = bullet.position[1];
 					bullets.push_back(bullet);
 				}
 			}
@@ -414,7 +390,7 @@ int main(int argc, char **argv) {
 			{
 				if (bullet.size == 0) continue;
 				bullet.Update(renderer, bullet_texture);
-				if (bullet.checkCollision(bullet.dstrect, player.dstrect)) {
+				if (checkCollision(bullet.mCollider, player.mCollider)) {
 					if (bullet.shooted) {
 						Mix_PlayChannel(-1, explosionSound.get(), 0);
 						int textureWidth;
@@ -435,7 +411,7 @@ int main(int argc, char **argv) {
 
 				for (auto& ast : asteroids) {
 					if (ast.size == 0) continue;
-					if (bullet.checkCollision(bullet.dstrect, ast.dstrect)) {
+					if (checkCollision(bullet.mCollider, ast.mCollider)) {
 						Mix_PlayChannel(-1, explosionSound.get(), 0);
 						int textureWidth;
 						int textureHeight;
@@ -456,6 +432,9 @@ int main(int argc, char **argv) {
 							asteroid1.position = ast.position;
 							asteroid1.velocity[1] = 3;
 							asteroid1.big = false;
+							asteroid1.mCollider.r = asteroid1.size / 2;
+							asteroid1.mCollider.x = asteroid1.position[0];
+							asteroid1.mCollider.y = asteroid1.position[1];
 							asteroids.push_back(asteroid1);
 							asteroid asteroid2;
 							asteroid2.size = 24;
@@ -463,6 +442,9 @@ int main(int argc, char **argv) {
 							asteroid2.position = ast.position;
 							asteroid2.velocity[1] = 3;
 							asteroid2.big = false;
+							asteroid2.mCollider.r = asteroid2.size / 2;
+							asteroid2.mCollider.x = asteroid2.position[0];
+							asteroid2.mCollider.y = asteroid2.position[1];
 							asteroids.push_back(asteroid2);
 						}
 					}
@@ -475,7 +457,7 @@ int main(int argc, char **argv) {
 			{
 				if (asteroid.size == 0) continue;
 				asteroid.Update(renderer, asteroid_texture);
-				if (asteroid.checkCollision(asteroid.dstrect, player.dstrect)) {
+				if (checkCollision(asteroid.mCollider, player.mCollider)) {
 					if (player.size > 0) {
 						Mix_PlayChannel(-1, explosionSound.get(), 0);
 						int textureWidth;
@@ -507,10 +489,26 @@ int main(int argc, char **argv) {
 				texW = 0;
 				texH = 0;
 				SDL_QueryTexture(lose_text.get(), NULL, NULL, &texW, &texH);
-				Message_rect = { 400 - texW / 2, 300 - texH / 2, texW, texH };
+				Message_rect = { 400 - texW / 2, 200 - texH / 2, texW, texH };
 				SDL_RenderCopy(renderer.get(), lose_text.get(), NULL, &Message_rect);
-			}
 
+				sprintf_s(str, "Highscore: %d", highScore);
+
+				if (score > highScore) {
+					highScore = score;
+					sprintf_s(str, "New highscore: %d", highScore);
+					SDL_RWops* file = SDL_RWFromFile("score.sav", "w+b");
+					SDL_RWwrite(file, &highScore, sizeof(int), 1);
+					SDL_RWclose(file);
+				}
+
+				auto score_text = load_score_text(renderer, str, 60, score_color);
+				texW = 0;
+				texH = 0;
+				SDL_QueryTexture(score_text.get(), NULL, NULL, &texW, &texH);
+				Message_rect = { 400 - texW / 2, 400 - texH / 2, texW, texH };
+				SDL_RenderCopy(renderer.get(), score_text.get(), NULL, &Message_rect);
+			}
 			SDL_RenderPresent(renderer.get());
 			SDL_Delay((int)(dt / 1000));
 		}
